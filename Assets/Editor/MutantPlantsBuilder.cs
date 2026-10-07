@@ -1218,24 +1218,28 @@ namespace MutantPlants.EditorTools
                 {
                     nameKey = "w_rifle", damage = 13f, fireRate = 9.5f, automatic = true, pellets = 1, spread = 1f,
                     range = 90f, recoil = 0.035f, shake = 0.035f, knockback = 0.9f, unlockedAtStart = true, sound = SoundFX.Sfx.AutoRifle,
+                    magazineSize = 30, reloadTime = 1.9f,
                     tracerColor = new Color(1f, 0.85f, 0.45f),
                 },
                 new WeaponData
                 {
                     nameKey = "w_shotgun", damage = 14f, fireRate = 1.3f, automatic = false, pellets = 10, spread = 6f,
                     range = 32f, recoil = 0.2f, shake = 0.25f, knockback = 1.2f, sound = SoundFX.Sfx.Shotgun,
+                    magazineSize = 5, shellByShell = true, shellLoadTime = 0.45f,
                     tracerColor = new Color(1f, 0.65f, 0.3f),
                 },
                 new WeaponData
                 {
                     nameKey = "w_sprayer", damage = 8f, fireRate = 14f, automatic = true, pellets = 1, spread = 2.2f,
                     range = 26f, recoil = 0.02f, shake = 0.02f, knockback = 0.6f, sound = SoundFX.Sfx.Sprayer,
+                    magazineSize = 40, reloadTime = 2.2f,
                     tracerColor = new Color(0.5f, 1f, 0.3f),
                 },
                 new WeaponData
                 {
                     nameKey = "w_launcher", damage = 110f, fireRate = 1f, automatic = false, pellets = 1, spread = 0f,
                     range = 0f, recoil = 0.25f, shake = 0.15f, sound = SoundFX.Sfx.Launcher, projectile = seed, projectileSpeed = 26f,
+                    magazineSize = 6, reloadTime = 2.6f,
                     tracerColor = new Color(0.6f, 1f, 0.2f),
                 },
             };

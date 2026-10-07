@@ -12,6 +12,7 @@ namespace MutantPlants
         {
             Rifle, Shotgun, Sprayer, Launcher, Hit, EnemyDeath, PlayerHurt, Pickup, Checkpoint, Click,
             Footstep, Explosion, Spit, Splat, BossRoar, BossSlam, WaveStart, Combo, Land, AutoRifle,
+            MagOut, MagIn, Bolt, ShellIn, Pump, DrumSpin, DryFire,
         }
 
         public enum Track { None, Menu, Game }
@@ -135,6 +136,13 @@ namespace MutantPlants
             clips[(int)Sfx.Combo] = Tone("Combo", 0.12f, 880f, 1320f, 0.25f);
             clips[(int)Sfx.Land] = Noise("Land", 0.15f, 25f, 0.3f, 0.08f);
             clips[(int)Sfx.AutoRifle] = Gunshot("AutoRifle", 0.16f, 26f, 0.55f, 180f);
+            clips[(int)Sfx.MagOut] = Clicks("MagOut", new[] { 0f, 0.05f }, new[] { 2200f, 900f }, 0.35f);
+            clips[(int)Sfx.MagIn] = Clicks("MagIn", new[] { 0f, 0.035f }, new[] { 700f, 1600f }, 0.5f);
+            clips[(int)Sfx.Bolt] = Clicks("Bolt", new[] { 0f, 0.09f, 0.12f }, new[] { 1800f, 2600f, 1200f }, 0.45f);
+            clips[(int)Sfx.ShellIn] = Clicks("ShellIn", new[] { 0f, 0.025f }, new[] { 2400f, 1300f }, 0.35f);
+            clips[(int)Sfx.Pump] = Noise("Pump", 0.28f, 9f, 0.3f, 0.2f);
+            clips[(int)Sfx.DrumSpin] = Clicks("DrumSpin", new[] { 0f, 0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f, 0.35f }, new[] { 2000f, 1900f, 2000f, 1900f, 2000f, 1900f, 2000f, 1900f }, 0.25f);
+            clips[(int)Sfx.DryFire] = Clicks("DryFire", new[] { 0f }, new[] { 3000f }, 0.3f);
 
             menuMusic = Music("MenuMusic", 92f, false);
             gameMusic = Music("GameMusic", 124f, true);
@@ -345,6 +353,27 @@ namespace MutantPlants
                 idx = next;
                 d[start + i] += v * vol;
             }
+        }
+
+        /// <summary>Short metallic clicks (mechanical gun sounds).</summary>
+        static AudioClip Clicks(string name, float[] times, float[] pitches, float volume)
+        {
+            float length = times[times.Length - 1] + 0.08f;
+            int n = (int)(SampleRate * length);
+            var data = new float[n];
+            for (int c = 0; c < times.Length; c++)
+            {
+                int start = (int)(times[c] * SampleRate);
+                float lp = 0f;
+                for (int i = 0; i < SampleRate * 0.06f && start + i < n; i++)
+                {
+                    float t = i / (float)SampleRate;
+                    lp = Mathf.Lerp(lp, Random.Range(-1f, 1f), 0.7f);
+                    float ring = Mathf.Sin(2f * Mathf.PI * pitches[c] * t);
+                    data[start + i] += (ring * 0.6f + lp * 0.5f) * Mathf.Exp(-t * 90f) * volume;
+                }
+            }
+            return Make(name, data);
         }
 
         static AudioClip Make(string name, float[] data)

@@ -22,8 +22,8 @@ namespace MutantPlants
             ["quit"] = ("Quit", "Kilépés"),
             ["leaderboard"] = ("TOP SCORES", "LEGJOBB PONTSZÁMOK"),
             ["noScores"] = ("No scores yet - go save the farm!", "Még nincs eredmény - mentsd meg a farmot!"),
-            ["controls"] = ("WASD move  •  Mouse aim  •  Left click shoot  •  1-4 / wheel switch weapon  •  Shift sprint  •  Space jump  •  Esc pause",
-                            "WASD mozgás  •  Egér célzás  •  Bal klikk lövés  •  1-4 / görgő fegyverváltás  •  Shift futás  •  Space ugrás  •  Esc szünet"),
+            ["controls"] = ("WASD move  •  Mouse aim  •  Left click shoot  •  1-4 / wheel switch weapon  •  R reload  •  Shift sprint  •  Space jump  •  Esc pause",
+                            "WASD mozgás  •  Egér célzás  •  Bal klikk lövés  •  1-4 / görgő fegyverváltás  •  R újratöltés  •  Shift futás  •  Space ugrás  •  Esc szünet"),
 
             // Settings
             ["sensitivity"] = ("Mouse sensitivity", "Egérérzékenység"),
@@ -71,6 +71,10 @@ namespace MutantPlants
             ["kill"] = ("{0} splatted", "{0} szétloccsantva"),
             ["bossKilled"] = ("BOSS DEFEATED!", "FŐELLENSÉG LEGYŐZVE!"),
             ["hugeWave"] = ("A huge wave of mutants is approaching!", "Hatalmas mutáns hullám közeleg!"),
+
+            // Ammo
+            ["reloading"] = ("RELOADING...", "ÚJRATÖLTÉS..."),
+            ["pressR"] = ("R - RELOAD", "R - ÚJRATÖLTÉS"),
 
             // Weapon fire-mode tags
             ["tagAuto"] = ("AUTO", "AUTO"),

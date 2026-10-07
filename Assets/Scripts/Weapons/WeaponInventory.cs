@@ -30,6 +30,14 @@ namespace MutantPlants
         /// <summary>Fired when a shot hits an enemy (for the hit marker).</summary>
         public event Action EnemyHit;
         public event Action<WeaponData> WeaponUnlocked;
+        /// <summary>Ammo in the current weapon changed (shot, reload, switch).</summary>
+        public event Action AmmoChanged;
+
+        public int CurrentAmmo => ammo[CurrentIndex];
+        public int CurrentMagazine => Current.magazineSize;
+        public bool IsReloading => reloading;
+        /// <summary>0..1 progress of the current reload.</summary>
+        public float ReloadProgress { get; private set; }
 
         bool[] unlocked;
         float nextFireTime;
@@ -39,6 +47,15 @@ namespace MutantPlants
         Quaternion swayRotation = Quaternion.identity;
         Vector3 holderRestPosition;
         float muzzleLightTimer;
+
+        // Ammo & reloading
+        int[] ammo;
+        ReloadAnimator[] reloadAnims;
+        bool reloading;
+        float reloadTimer;
+        int shellPhase; // shotgun: 0 tilt in, 1 loading shells, 2 pump
+        float autoReloadTimer = -1f;
+        const float ShellEnterTime = 0.22f, ShellPumpTime = 0.6f;
 
         public int UnlockedMask
         {
@@ -56,10 +73,18 @@ namespace MutantPlants
         {
             unlocked = new bool[weapons.Length];
             modelRestPositions = new Vector3[weapons.Length];
+            ammo = new int[weapons.Length];
+            reloadAnims = new ReloadAnimator[weapons.Length];
             for (int i = 0; i < weapons.Length; i++)
             {
                 unlocked[i] = weapons[i].unlockedAtStart;
-                if (weapons[i].model != null) modelRestPositions[i] = weapons[i].model.transform.localPosition;
+                ammo[i] = weapons[i].magazineSize;
+                if (weapons[i].model != null)
+                {
+                    modelRestPositions[i] = weapons[i].model.transform.localPosition;
+                    reloadAnims[i] = weapons[i].model.GetComponent<ReloadAnimator>();
+                    if (reloadAnims[i] != null) reloadAnims[i].SetAmmo(ammo[i], weapons[i].magazineSize);
+                }
             }
             if (weaponHolder != null) holderRestPosition = weaponHolder.localPosition;
             if (muzzleLight != null) muzzleLight.enabled = false;
@@ -106,8 +131,30 @@ namespace MutantPlants
 
             HandleSwitching();
 
+            if (Input.GetKeyDown(KeyCode.R)) StartReload();
+            if (autoReloadTimer >= 0f)
+            {
+                autoReloadTimer -= Time.deltaTime;
+                if (autoReloadTimer < 0f) StartReload();
+            }
+            UpdateReload(Time.deltaTime);
+
             bool trigger = Current.automatic ? Input.GetMouseButton(0) : Input.GetMouseButtonDown(0);
-            if (trigger && Time.time >= nextFireTime && switchAnim <= 0.2f) Fire();
+            if (trigger && Time.time >= nextFireTime && switchAnim <= 0.2f)
+            {
+                // A pump shotgun can stop loading shells to fire.
+                if (reloading && Current.shellByShell && shellPhase == 1 && ammo[CurrentIndex] > 0) CancelReload();
+
+                if (!reloading)
+                {
+                    if (ammo[CurrentIndex] > 0) Fire();
+                    else if (Input.GetMouseButtonDown(0))
+                    {
+                        SoundFX.PlayVaried(SoundFX.Sfx.DryFire, 0.8f);
+                        StartReload();
+                    }
+                }
+            }
 
             AnimateModel();
 
@@ -138,12 +185,98 @@ namespace MutantPlants
 
         void Equip(int index)
         {
+            CancelReload();
             CurrentIndex = index;
             for (int i = 0; i < weapons.Length; i++)
                 if (weapons[i].model != null) weapons[i].model.SetActive(i == index);
             nextFireTime = Time.time + 0.2f;
             switchAnim = 1f;
             InventoryChanged?.Invoke();
+            AmmoChanged?.Invoke();
+        }
+
+        // ---------------------------------------------------------------- Reloading
+
+        ReloadAnimator CurrentAnim => reloadAnims != null ? reloadAnims[CurrentIndex] : null;
+
+        /// <summary>Starts reloading the current weapon (R key, or automatically when empty).</summary>
+        public void StartReload()
+        {
+            autoReloadTimer = -1f;
+            if (reloading || ammo[CurrentIndex] >= Current.magazineSize) return;
+            reloading = true;
+            reloadTimer = 0f;
+            shellPhase = 0;
+            ReloadProgress = 0f;
+            AmmoChanged?.Invoke();
+        }
+
+        void CancelReload()
+        {
+            if (!reloading) return;
+            reloading = false;
+            ReloadProgress = 0f;
+            var anim = CurrentAnim;
+            if (anim != null) anim.Rest();
+            if (anim != null) anim.SetAmmo(ammo[CurrentIndex], Current.magazineSize);
+            AmmoChanged?.Invoke();
+        }
+
+        void FinishReload()
+        {
+            reloading = false;
+            ReloadProgress = 1f;
+            var anim = CurrentAnim;
+            if (anim != null) { anim.Rest(); anim.SetAmmo(ammo[CurrentIndex], Current.magazineSize); }
+            AmmoChanged?.Invoke();
+        }
+
+        void UpdateReload(float dt)
+        {
+            if (!reloading) return;
+            var w = Current;
+            var anim = CurrentAnim;
+            float speed = RapidFireTimeLeft > 0f ? 1.5f : 1f; // the rapid-fire power-up also speeds up reloads
+            reloadTimer += dt * speed;
+
+            if (!w.shellByShell)
+            {
+                float t = Mathf.Clamp01(reloadTimer / w.reloadTime);
+                ReloadProgress = t;
+                if (anim != null) anim.SampleFull(t);
+                if (t >= 1f)
+                {
+                    ammo[CurrentIndex] = w.magazineSize;
+                    FinishReload();
+                }
+                return;
+            }
+
+            // Shell by shell: tilt in, load rounds one at a time, then pump.
+            switch (shellPhase)
+            {
+                case 0:
+                    if (anim != null) anim.SampleShellEnter(Mathf.Clamp01(reloadTimer / ShellEnterTime));
+                    if (reloadTimer >= ShellEnterTime) { shellPhase = 1; reloadTimer = 0f; }
+                    break;
+                case 1:
+                    float k = Mathf.Clamp01(reloadTimer / w.shellLoadTime);
+                    if (anim != null) anim.SampleShell(k);
+                    if (k >= 1f)
+                    {
+                        ammo[CurrentIndex]++;
+                        AmmoChanged?.Invoke();
+                        reloadTimer = 0f;
+                        if (ammo[CurrentIndex] >= w.magazineSize) shellPhase = 2;
+                    }
+                    break;
+                case 2:
+                    float p = Mathf.Clamp01(reloadTimer / ShellPumpTime);
+                    if (anim != null) anim.SamplePumpAction(p);
+                    if (p >= 1f) FinishReload();
+                    break;
+            }
+            ReloadProgress = shellPhase == 2 ? 1f : ammo[CurrentIndex] / (float)w.magazineSize;
         }
 
         void Fire()
@@ -158,6 +291,12 @@ namespace MutantPlants
             CameraFX.Shake(w.shake);
             if (w.pellets > 1) CameraFX.Kick(2f);
             if (GameManager.Instance != null) GameManager.Instance.Stats.shotsFired++;
+
+            ammo[CurrentIndex] = Mathf.Max(0, ammo[CurrentIndex] - 1);
+            var reloadAnim = CurrentAnim;
+            if (reloadAnim != null) reloadAnim.SetAmmo(ammo[CurrentIndex], w.magazineSize);
+            AmmoChanged?.Invoke();
+            if (ammo[CurrentIndex] == 0) autoReloadTimer = 0.35f;
 
             Transform cam = aimCamera.transform;
             Vector3 muzzlePos = w.muzzle != null ? w.muzzle.position : cam.position + cam.forward * 0.5f;
