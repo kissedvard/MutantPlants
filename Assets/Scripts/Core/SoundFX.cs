@@ -11,7 +11,7 @@ namespace MutantPlants
         public enum Sfx
         {
             Rifle, Shotgun, Sprayer, Launcher, Hit, EnemyDeath, PlayerHurt, Pickup, Checkpoint, Click,
-            Footstep, Explosion, Spit, Splat, BossRoar, BossSlam, WaveStart, Combo, Land,
+            Footstep, Explosion, Spit, Splat, BossRoar, BossSlam, WaveStart, Combo, Land, AutoRifle,
         }
 
         public enum Track { None, Menu, Game }
@@ -134,6 +134,7 @@ namespace MutantPlants
             clips[(int)Sfx.WaveStart] = Arpeggio("Wave", new[] { 220f, 277f, 330f, 440f }, 0.13f);
             clips[(int)Sfx.Combo] = Tone("Combo", 0.12f, 880f, 1320f, 0.25f);
             clips[(int)Sfx.Land] = Noise("Land", 0.15f, 25f, 0.3f, 0.08f);
+            clips[(int)Sfx.AutoRifle] = Gunshot("AutoRifle", 0.16f, 26f, 0.55f, 180f);
 
             menuMusic = Music("MenuMusic", 92f, false);
             gameMusic = Music("GameMusic", 124f, true);

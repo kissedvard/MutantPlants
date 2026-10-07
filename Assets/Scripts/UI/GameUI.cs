@@ -41,7 +41,7 @@ namespace MutantPlants
 
         static readonly Color[] WeaponColors =
         {
-            new Color(0.55f, 0.36f, 0.2f), new Color(0.45f, 0.45f, 0.5f), new Color(0.3f, 0.65f, 0.95f), new Color(0.3f, 0.7f, 0.25f),
+            new Color(0.88f, 0.25f, 0.15f), new Color(0.45f, 0.45f, 0.5f), new Color(0.3f, 0.6f, 0.95f), new Color(0.36f, 0.72f, 0.2f),
         };
 
         static Vector2 Center => new Vector2(0.5f, 0.5f);

@@ -1196,6 +1196,7 @@ namespace MutantPlants.EditorTools
             controller.playerCamera = cam;
             var health = player.AddComponent<PlayerHealth>();
 
+            CreateWeaponMaterials();
             var holder = Empty("WeaponHolder", camGo.transform, Vector3.zero).transform;
             holder.localScale = Vector3.one * 0.6f;
             var muzzleLight = Empty("MuzzleLight", camGo.transform, new Vector3(0.2f, -0.1f, 0.8f)).AddComponent<Light>();
@@ -1214,8 +1215,8 @@ namespace MutantPlants.EditorTools
             {
                 new WeaponData
                 {
-                    nameKey = "w_rifle", damage = 28f, fireRate = 4.5f, automatic = false, pellets = 1, spread = 0.2f,
-                    range = 100f, recoil = 0.08f, shake = 0.08f, knockback = 1.5f, unlockedAtStart = true, sound = SoundFX.Sfx.Rifle,
+                    nameKey = "w_rifle", damage = 13f, fireRate = 9.5f, automatic = true, pellets = 1, spread = 1f,
+                    range = 90f, recoil = 0.035f, shake = 0.035f, knockback = 0.9f, unlockedAtStart = true, sound = SoundFX.Sfx.AutoRifle,
                     tracerColor = new Color(1f, 0.85f, 0.45f),
                 },
                 new WeaponData
@@ -1237,7 +1238,7 @@ namespace MutantPlants.EditorTools
                     tracerColor = new Color(0.6f, 1f, 0.2f),
                 },
             };
-            inventory.weapons[0].model = RifleModel(holder, out inventory.weapons[0].muzzle);
+            inventory.weapons[0].model = AutoRifleModel(holder, out inventory.weapons[0].muzzle);
             inventory.weapons[1].model = ShotgunModel(holder, out inventory.weapons[1].muzzle);
             inventory.weapons[2].model = SprayerModel(holder, out inventory.weapons[2].muzzle);
             inventory.weapons[3].model = LauncherModel(holder, out inventory.weapons[3].muzzle);
@@ -1245,63 +1246,6 @@ namespace MutantPlants.EditorTools
             foreach (var r in holder.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = ShadowCastingMode.Off;
 
             return (health, inventory);
-        }
-
-        static readonly Vector3 GunOffset = new Vector3(0.38f, -0.36f, 0.75f);
-
-        static GameObject RifleModel(Transform holder, out Transform muzzle)
-        {
-            var root = Empty("Rifle", holder, GunOffset).transform;
-            Prim(PrimitiveType.Cube, "Stock", root, new Vector3(0f, -0.04f, -0.05f), new Vector3(0.08f, 0.13f, 0.32f), "Wood", false);
-            Prim(PrimitiveType.Cube, "Grip", root, new Vector3(0f, -0.12f, 0.05f), new Vector3(0.06f, 0.14f, 0.07f), "Wood", false, new Vector3(-20f, 0f, 0f));
-            Prim(PrimitiveType.Cube, "Receiver", root, new Vector3(0f, 0.02f, 0.15f), new Vector3(0.07f, 0.08f, 0.22f), "Metal", false);
-            Prim(PrimitiveType.Cube, "Handguard", root, new Vector3(0f, 0f, 0.38f), new Vector3(0.07f, 0.07f, 0.3f), "Wood", false);
-            Prim(PrimitiveType.Cylinder, "Barrel", root, new Vector3(0f, 0.03f, 0.5f), new Vector3(0.03f, 0.3f, 0.03f), "Metal", false, new Vector3(90f, 0f, 0f));
-            Prim(PrimitiveType.Cylinder, "Scope", root, new Vector3(0f, 0.1f, 0.15f), new Vector3(0.045f, 0.12f, 0.045f), "Black", false, new Vector3(90f, 0f, 0f));
-            Prim(PrimitiveType.Cylinder, "Lens", root, new Vector3(0f, 0.1f, 0.275f), new Vector3(0.04f, 0.005f, 0.04f), "PowerBlue", false, new Vector3(90f, 0f, 0f));
-            muzzle = Empty("Muzzle", root, new Vector3(0f, 0.03f, 0.82f)).transform;
-            return root.gameObject;
-        }
-
-        static GameObject ShotgunModel(Transform holder, out Transform muzzle)
-        {
-            var root = Empty("Shotgun", holder, GunOffset).transform;
-            Prim(PrimitiveType.Cube, "Stock", root, new Vector3(0f, -0.05f, -0.02f), new Vector3(0.1f, 0.14f, 0.28f), "DarkWood", false);
-            Prim(PrimitiveType.Cube, "Receiver", root, new Vector3(0f, 0.01f, 0.15f), new Vector3(0.1f, 0.1f, 0.14f), "Metal", false);
-            for (int s = -1; s <= 1; s += 2)
-                Prim(PrimitiveType.Cylinder, "Barrel", root, new Vector3(s * 0.027f, 0.03f, 0.42f), new Vector3(0.05f, 0.24f, 0.05f), "Metal", false, new Vector3(90f, 0f, 0f));
-            Prim(PrimitiveType.Cube, "Pump", root, new Vector3(0f, -0.03f, 0.38f), new Vector3(0.09f, 0.06f, 0.18f), "DarkWood", false);
-            muzzle = Empty("Muzzle", root, new Vector3(0f, 0.03f, 0.68f)).transform;
-            root.gameObject.SetActive(false);
-            return root.gameObject;
-        }
-
-        static GameObject SprayerModel(Transform holder, out Transform muzzle)
-        {
-            var root = Empty("WeedSprayer", holder, GunOffset + new Vector3(0f, 0.02f, 0f)).transform;
-            Prim(PrimitiveType.Cylinder, "Tank", root, new Vector3(0f, -0.02f, 0.02f), new Vector3(0.17f, 0.15f, 0.17f), "Sprayer", false, new Vector3(90f, 0f, 0f));
-            Prim(PrimitiveType.Cylinder, "Liquid", root, new Vector3(0.07f, -0.02f, 0.02f), new Vector3(0.05f, 0.12f, 0.05f), "Ooze", false, new Vector3(90f, 0f, 0f));
-            Prim(PrimitiveType.Cylinder, "Nozzle", root, new Vector3(0f, 0.02f, 0.3f), new Vector3(0.025f, 0.17f, 0.025f), "Metal", false, new Vector3(90f, 0f, 0f));
-            Prim(PrimitiveType.Cylinder, "Tip", root, new Vector3(0f, 0.02f, 0.47f), new Vector3(0.045f, 0.02f, 0.045f), "Sunflower", false, new Vector3(90f, 0f, 0f));
-            Prim(PrimitiveType.Cube, "Handle", root, new Vector3(0f, -0.13f, 0.02f), new Vector3(0.04f, 0.13f, 0.05f), "Black", false);
-            muzzle = Empty("Muzzle", root, new Vector3(0f, 0.02f, 0.5f)).transform;
-            root.gameObject.SetActive(false);
-            return root.gameObject;
-        }
-
-        static GameObject LauncherModel(Transform holder, out Transform muzzle)
-        {
-            var root = Empty("SeedLauncher", holder, GunOffset + new Vector3(0.04f, -0.03f, 0.05f)).transform;
-            root.localScale = Vector3.one * 0.75f;
-            Prim(PrimitiveType.Cylinder, "Tube", root, new Vector3(0f, 0.03f, 0.25f), new Vector3(0.13f, 0.32f, 0.13f), "Tractor", false, new Vector3(90f, 0f, 0f));
-            Prim(PrimitiveType.Cylinder, "Ring", root, new Vector3(0f, 0.03f, 0.56f), new Vector3(0.16f, 0.03f, 0.16f), "Gold", false, new Vector3(90f, 0f, 0f));
-            Prim(PrimitiveType.Cylinder, "Drum", root, new Vector3(0f, -0.06f, 0.05f), new Vector3(0.17f, 0.07f, 0.17f), "Wood", false, new Vector3(0f, 0f, 90f));
-            Prim(PrimitiveType.Sphere, "SeedA", root, new Vector3(0.08f, -0.06f, 0.1f), Vector3.one * 0.05f, "SeedGlow", false);
-            Prim(PrimitiveType.Sphere, "SeedB", root, new Vector3(0.08f, -0.06f, 0f), Vector3.one * 0.05f, "SeedGlow", false);
-            Prim(PrimitiveType.Cube, "Grip", root, new Vector3(0f, -0.15f, -0.03f), new Vector3(0.05f, 0.15f, 0.06f), "Wood", false, new Vector3(-15f, 0f, 0f));
-            muzzle = Empty("Muzzle", root, new Vector3(0f, 0.03f, 0.6f)).transform;
-            root.gameObject.SetActive(false);
-            return root.gameObject;
         }
 
         // ------------------------------------------------------------------ Scenes
