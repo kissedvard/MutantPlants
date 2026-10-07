@@ -13,7 +13,8 @@ WASD move · Mouse aim · Left click shoot · 1-4 / wheel switch weapon · Shift
 | Area | What's in | Where |
 |---|---|---|
 | Movement | Acceleration, sprint FOV, head bob, landing dip, footsteps | `Player/PlayerController.cs`, `Player/CameraFX.cs` |
-| Weapons | Farm Rifle, Shotgun, Weed Sprayer, Seed Launcher (explosive); sway, recoil, muzzle flash + light, impacts | `Weapons/` |
+| Weapons | Auto Rifle (starting weapon, full-auto), Shotgun, Weed Sprayer, Seed Launcher (explosive); sway, recoil, muzzle flash + light, impacts | `Weapons/` |
+| Weapon models | Cartoon viewmodels matching the enemy style (outlines, bright colours) held by work gloves with denim sleeves | `Editor/WeaponModelFactory.cs` |
 | Enemies | Carrot (fast), Eggplant (bruiser), Pickle Spitter (ranged), Pumpkin (tank), **Pumpkin King boss** (ground slam, summons minions) | `Enemies/EnemyPlant.cs`, `EnemyProjectile.cs` |
 | Enemy models & animation | Cartoon models built from code (smooth lathe meshes, big eyes, outlines) and a shared Animator Controller with Idle / Walk / Attack / Hit / Die clips; eyes blink | `Editor/EnemyModelFactory.cs`, `Assets/Animations/` |
 | Waves | Escalating waves, breaks, boss every 5th wave, health scaling | `Enemies/EnemySpawner.cs` |

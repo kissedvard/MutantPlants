@@ -73,7 +73,7 @@ namespace MutantPlants
             ["hugeWave"] = ("A huge wave of mutants is approaching!", "Hatalmas mutáns hullám közeleg!"),
 
             // Weapons
-            ["w_rifle"] = ("Farm Rifle", "Farmer puska"),
+            ["w_rifle"] = ("Auto Rifle", "Gépkarabély"),
             ["w_shotgun"] = ("Shotgun", "Sörétes"),
             ["w_sprayer"] = ("Weed Sprayer", "Gyomirtó permetező"),
             ["w_launcher"] = ("Seed Launcher", "Magvető ágyú"),
