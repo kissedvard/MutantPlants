@@ -268,9 +268,35 @@ namespace MutantPlants.EditorTools
 
             LatheZ("Cuff", forearm, 0.05f, Capped(0.058f, 4f), "Glove", new Vector3(0f, 0f, -0.005f), new Vector3(90f, 0f, 0f));
             LatheZ("SleeveRoll", forearm, 0.05f, Capped(0.07f, 4f), "DenimLight", new Vector3(0f, 0f, 0.04f), new Vector3(90f, 0f, 0f));
-            var arm = TubeMesh(UniqueMeshName("Forearm"), new[] { new Vector3(0f, 0f, 0.07f), new Vector3(0f, 0f, length * 0.5f), new Vector3(0f, 0f, length + 0.1f) },
+            var arm = TubeMesh(UniqueMeshName("Forearm"), new[] { new Vector3(0f, 0f, 0.07f), new Vector3(0f, 0f, length * 0.5f), new Vector3(0f, 0f, length + 0.4f) },
                 0.065f, 8, 18, 0.1f);
             ToonMesh("Sleeve", forearm, arm, "Denim", Vector3.zero);
+        }
+
+        static ReloadAnimator AddReloadAnimator(Transform pose, ReloadAnimator.Style style, Transform part, Transform bolt, Transform extra)
+        {
+            // Forearms are re-aimed every frame at elbows below the screen.
+            var aim = pose.parent.gameObject.AddComponent<ArmAim>();
+            aim.viewCamera = viewCamera;
+            var forearms = new System.Collections.Generic.List<Transform>();
+            var elbows = new System.Collections.Generic.List<Vector3>();
+            foreach (var t in pose.GetComponentsInChildren<Transform>(true))
+                if (t.name == "Forearm")
+                {
+                    forearms.Add(t);
+                    elbows.Add(t.parent.name.StartsWith("Left") ? LeftElbow : RightElbow);
+                }
+            aim.forearms = forearms.ToArray();
+            aim.elbows = elbows.ToArray();
+
+            var anim = pose.parent.gameObject.AddComponent<ReloadAnimator>();
+            anim.style = style;
+            anim.pose = pose;
+            anim.leftHand = pose.Find("LeftHand");
+            anim.part = part;
+            anim.bolt = bolt;
+            anim.extra = extra;
+            return anim;
         }
 
         static void TriggerGroup(Transform root, float z, float top)
@@ -312,9 +338,10 @@ namespace MutantPlants.EditorTools
             RB("Grip", root, new Vector3(0.056f, 0.13f, 0.072f), 0.024f, "GunWood", new Vector3(0f, -0.115f, 0.01f), new Vector3(-18f, 0f, 0f),
                 v => new Vector3(v.x * (1f + v.y * 1.2f), v.y, v.z));
             TriggerGroup(root, 0.07f, -0.06f);
-            RB("Magazine", root, new Vector3(0.055f, 0.18f, 0.078f), 0.018f, "GunYellow", new Vector3(0f, -0.14f, 0.19f), new Vector3(8f, 0f, 0f),
+            var magGroup = Empty("MagGroup", root, Vector3.zero).transform;
+            RB("Magazine", magGroup, new Vector3(0.055f, 0.18f, 0.078f), 0.018f, "GunYellow", new Vector3(0f, -0.14f, 0.19f), new Vector3(8f, 0f, 0f),
                 v => new Vector3(v.x, v.y, v.z + 2.2f * v.y * v.y));
-            RB("MagPlate", root, new Vector3(0.062f, 0.02f, 0.088f), 0.008f, "GunDark", new Vector3(0f, -0.225f, 0.245f), new Vector3(30f, 0f, 0f));
+            RB("MagPlate", magGroup, new Vector3(0.062f, 0.02f, 0.088f), 0.008f, "GunDark", new Vector3(0f, -0.225f, 0.245f), new Vector3(30f, 0f, 0f));
 
             // Stock: wider towards the shoulder, rubber pad
             RB("Stock", root, new Vector3(0.075f, 0.12f, 0.22f), 0.032f, "GunWood", new Vector3(0f, -0.03f, -0.13f), new Vector3(-6f, 0f, 0f),
@@ -324,6 +351,7 @@ namespace MutantPlants.EditorTools
             Glove(root, "RightHand", new Vector3(-0.005f, -0.12f, 0.01f), new Vector3(-18f, 0f, 0f), new Vector3(-70f, 0f, -10f));
             Glove(root, "LeftHand", new Vector3(-0.02f, -0.065f, 0.38f), new Vector3(0f, 0f, 10f), new Vector3(-40f, 0f, 45f));
             muzzle = Empty("Muzzle", root, new Vector3(0f, 0.015f, 0.64f)).transform;
+            AddReloadAnimator(root, ReloadAnimator.Style.Magazine, magGroup, root.Find("ChargingKnob"), null);
             return root.parent.gameObject;
         }
 
@@ -350,14 +378,21 @@ namespace MutantPlants.EditorTools
             RB("TopRib", root, new Vector3(0.02f, 0.016f, 0.4f), 0.006f, "GunDark", new Vector3(0f, 0.07f, 0.4f), null, null, 0.003f);
             Toon(PrimitiveType.Sphere, "Bead", root, new Vector3(0f, 0.083f, 0.59f), Vector3.one * 0.02f, "Gold", null, 0.15f);
 
-            RB("Pump", root, new Vector3(0.1f, 0.08f, 0.19f), 0.035f, "GunWood", new Vector3(0f, -0.022f, 0.38f));
+            var pumpGroup = Empty("PumpGroup", root, Vector3.zero).transform;
+            RB("Pump", pumpGroup, new Vector3(0.1f, 0.08f, 0.19f), 0.035f, "GunWood", new Vector3(0f, -0.022f, 0.38f));
             for (int i = 0; i < 5; i++)
-                RB("PumpGroove", root, new Vector3(0.104f, 0.07f, 0.012f), 0.005f, "GunDark", new Vector3(0f, -0.022f, 0.32f + i * 0.03f), null, null, 0f);
+                RB("PumpGroove", pumpGroup, new Vector3(0.104f, 0.07f, 0.012f), 0.005f, "GunDark", new Vector3(0f, -0.022f, 0.32f + i * 0.03f), null, null, 0f);
             TriggerGroup(root, 0.06f, -0.05f);
 
             Glove(root, "RightHand", new Vector3(-0.005f, -0.08f, 0.02f), new Vector3(-22f, 0f, 0f), new Vector3(-70f, 0f, -10f));
             Glove(root, "LeftHand", new Vector3(-0.02f, -0.07f, 0.38f), new Vector3(0f, 0f, 10f), new Vector3(-40f, 0f, 45f));
             muzzle = Empty("Muzzle", root, new Vector3(0f, 0.035f, 0.63f)).transform;
+            // Red shotgun shell with a brass base, shown while loading.
+            var shell = Empty("ShellVisual", root, new Vector3(0f, -0.3f, 0.14f)).transform;
+            LatheZ("ShellBody", shell, 0.07f, Capped(0.017f, 10f), "GunRed", new Vector3(0f, 0f, -0.025f));
+            LatheZ("ShellBase", shell, 0.022f, Capped(0.018f, 6f), "Gold", new Vector3(0f, 0f, -0.035f));
+            shell.gameObject.SetActive(false);
+            AddReloadAnimator(root, ReloadAnimator.Style.ShellByShell, pumpGroup, null, shell);
             root.parent.gameObject.SetActive(false);
             return root.parent.gameObject;
         }
@@ -372,18 +407,20 @@ namespace MutantPlants.EditorTools
             LatheZ("Tank", root, 0.3f, Capped(0.1f, 3f), "TankBlue", new Vector3(0f, -0.02f, -0.13f));
             LatheZ("BandFront", root, 0.02f, Capped(0.103f, 4f), "GunYellow", new Vector3(0f, -0.02f, 0.08f));
             LatheZ("BandBack", root, 0.02f, Capped(0.103f, 4f), "GunYellow", new Vector3(0f, -0.02f, -0.07f));
-            RB("Window", root, new Vector3(0.03f, 0.075f, 0.12f), 0.014f, "Ooze", new Vector3(0.088f, -0.02f, 0.005f));
+            var liquid = Empty("Liquid", root, new Vector3(0.088f, -0.0575f, 0.005f)).transform;
+            RB("Window", liquid, new Vector3(0.03f, 0.075f, 0.12f), 0.014f, "Ooze", new Vector3(0f, 0.0375f, 0f));
             for (int i = 0; i < 3; i++)
                 RB("Mark", root, new Vector3(0.032f, 0.006f, 0.04f), 0.002f, "GunDark", new Vector3(0.09f, -0.04f + i * 0.02f, 0.005f), null, null, 0f);
 
             // Pressure gauge
-            LatheZ("Gauge", root, 0.018f, Capped(0.03f, 4f), "GunMetal", new Vector3(0.045f, 0.075f, 0.04f), new Vector3(0f, 0f, -30f));
-            LatheZ("GaugeFace", root, 0.004f, Capped(0.024f, 2f), "EyeWhite", new Vector3(0.054f, 0.091f, 0.04f), new Vector3(0f, 0f, -30f), null, 0f);
-            RB("Needle", root, new Vector3(0.004f, 0.002f, 0.018f), 0.001f, "HealthRed", new Vector3(0.056f, 0.095f, 0.045f), new Vector3(0f, 35f, -30f), null, 0f);
+            LatheZ("Gauge", root, 0.018f, Capped(0.03f, 4f), "GunMetal", new Vector3(0.045f, 0.075f, -0.07f), new Vector3(0f, 0f, -30f));
+            LatheZ("GaugeFace", root, 0.004f, Capped(0.024f, 2f), "EyeWhite", new Vector3(0.054f, 0.091f, -0.07f), new Vector3(0f, 0f, -30f), null, 0f);
+            RB("Needle", root, new Vector3(0.004f, 0.002f, 0.018f), 0.001f, "HealthRed", new Vector3(0.056f, 0.095f, -0.065f), new Vector3(0f, 35f, -30f), null, 0f);
 
             // Pump handle
-            LatheZ("PumpRod", root, 0.07f, Capped(0.012f, 8f), "GunMetal", new Vector3(0f, 0.07f, -0.05f), Vector3.zero);
-            LatheZ("PumpHandle", root, 0.13f, Capped(0.022f, 3f), "GunRed", new Vector3(-0.065f, 0.15f, -0.05f), new Vector3(0f, 0f, -90f));
+            var tankPump = Empty("PumpGroup", root, Vector3.zero).transform;
+            LatheZ("PumpRod", tankPump, 0.07f, Capped(0.012f, 8f), "GunMetal", new Vector3(-0.06f, 0.055f, 0.06f), new Vector3(0f, 0f, 30f));
+            LatheZ("PumpHandle", tankPump, 0.12f, Capped(0.022f, 3f), "GunRed", new Vector3(-0.16f, 0.12f, 0.06f), new Vector3(0f, 0f, -60f));
 
             // Wand + flared nozzle
             LatheZ("Wand", root, 0.26f, Capped(0.017f, 12f), "GunMetal", new Vector3(0f, 0.03f, 0.13f));
@@ -405,6 +442,7 @@ namespace MutantPlants.EditorTools
             Glove(root, "RightHand", new Vector3(-0.005f, -0.16f, 0.01f), new Vector3(-12f, 0f, 0f), new Vector3(-70f, 0f, -10f));
             Glove(root, "LeftHand", new Vector3(-0.02f, 0.0f, 0.28f), new Vector3(0f, 0f, 10f), new Vector3(-40f, 0f, 45f), 0.9f);
             muzzle = Empty("Muzzle", root, new Vector3(0f, 0.03f, 0.46f)).transform;
+            AddReloadAnimator(root, ReloadAnimator.Style.Pump, tankPump, root.Find("Needle"), liquid);
             root.parent.gameObject.SetActive(false);
             return root.parent.gameObject;
         }
@@ -435,12 +473,14 @@ namespace MutantPlants.EditorTools
             }
 
             // Seed drum with glowing seeds
-            LatheZ("Drum", root, 0.11f, Capped(0.09f, 5f), "GunWood", new Vector3(-0.055f, -0.08f, 0.1f), new Vector3(0f, 0f, -90f));
-            for (int i = 0; i < 5; i++)
+            var drum = Empty("DrumGroup", root, new Vector3(0f, -0.08f, 0.1f)).transform;
+            LatheZ("Drum", drum, 0.11f, Capped(0.09f, 5f), "GunWood", new Vector3(-0.055f, 0f, 0f), new Vector3(0f, 0f, -90f));
+            var seeds = new Transform[6];
+            for (int i = 0; i < seeds.Length; i++)
             {
-                float a = i * Mathf.PI * 2f / 5f;
-                Toon(PrimitiveType.Sphere, "Seed", root, new Vector3(0.06f, -0.08f + Mathf.Sin(a) * 0.055f, 0.1f + Mathf.Cos(a) * 0.055f),
-                    new Vector3(0.022f, 0.032f, 0.032f), "SeedGlow", null, 0.12f);
+                float a = i * Mathf.PI * 2f / seeds.Length;
+                seeds[i] = Toon(PrimitiveType.Sphere, "Seed", drum, new Vector3(0.06f, Mathf.Sin(a) * 0.055f, Mathf.Cos(a) * 0.055f),
+                    new Vector3(0.022f, 0.03f, 0.03f), "SeedGlow", null, 0.12f).transform;
             }
             RB("Sight", root, new Vector3(0.03f, 0.05f, 0.04f), 0.01f, "GunYellow", new Vector3(0f, 0.115f, 0.42f));
 
@@ -451,6 +491,7 @@ namespace MutantPlants.EditorTools
             Glove(root, "RightHand", new Vector3(-0.005f, -0.15f, -0.01f), new Vector3(-15f, 0f, 0f), new Vector3(-70f, 0f, -10f));
             Glove(root, "LeftHand", new Vector3(-0.005f, -0.1f, 0.33f), new Vector3(0f, 0f, 0f), new Vector3(-40f, 0f, 45f));
             muzzle = Empty("Muzzle", root, new Vector3(0f, 0.03f, 0.6f)).transform;
+            AddReloadAnimator(root, ReloadAnimator.Style.Drum, drum, null, null).items = seeds;
             root.parent.gameObject.SetActive(false);
             return root.parent.gameObject;
         }

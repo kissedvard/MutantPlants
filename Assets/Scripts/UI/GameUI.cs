@@ -27,6 +27,11 @@ namespace MutantPlants
         GameObject hitMarker;
         RectTransform[] crossBars;
         InventoryBar inventory;
+        RectTransform ammoPlate, reloadHint;
+        Text ammoText, ammoMaxText, reloadText;
+        Image ammoFill;
+        int shownAmmo = -1;
+        float ammoPunch;
         Button loadCheckpointButton;
         KillPopups killPopups;
         EnemyPlant boss;
@@ -143,6 +148,7 @@ namespace MutantPlants
 
             UpdateCombo(dt);
             inventory.Update(dt);
+            UpdateAmmo(dt);
 
             // Waves
             if (waves != null)
@@ -285,7 +291,9 @@ namespace MutantPlants
             // --- Weapon tray (bottom right) ---
             inventory = new InventoryBar(root, weapons, this);
 
-            var buffRt = UIFactory.At(root, "Buffs", new Vector2(1f, 0f), new Vector2(-40f, 270f), new Vector2(560f, 80f));
+            BuildAmmoCounter(root);
+
+            var buffRt = UIFactory.At(root, "Buffs", new Vector2(1f, 0f), new Vector2(-40f, 372f), new Vector2(560f, 80f));
             buffText = UIFactory.Text(buffRt, "", 28, TextAnchor.LowerRight, UISkin.Sun, 3f);
 
             // --- Damage direction indicators ---
@@ -296,6 +304,54 @@ namespace MutantPlants
                 img.raycastTarget = false;
                 indicators.Add(new DamageIndicator { image = img, time = -10f });
             }
+        }
+
+        void BuildAmmoCounter(Transform root)
+        {
+            ammoPlate = UIFactory.At(root, "Ammo", new Vector2(1f, 0f), new Vector2(-36f, 262f), new Vector2(300f, 96f));
+            UIFactory.Sliced(ammoPlate, UISkin.Plank, Color.white, 1.2f, true).raycastTarget = false;
+            var countRt = UIFactory.Rect(ammoPlate, "Count", new Vector2(0f, 0.3f), new Vector2(0.62f, 1f), new Vector2(1f, 0.5f), Vector2.zero, Vector2.zero);
+            ammoText = UIFactory.Text(countRt, "30", 58, TextAnchor.MiddleRight, Color.white, 3.5f);
+            var maxRt = UIFactory.Rect(ammoPlate, "Max", new Vector2(0.63f, 0.3f), new Vector2(1f, 0.85f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+            ammoMaxText = UIFactory.Text(maxRt, "/ 30", 28, TextAnchor.MiddleLeft, UISkin.Cream, 2.5f);
+            var barRt = UIFactory.Rect(ammoPlate, "Bar", new Vector2(0.08f, 0.12f), new Vector2(0.92f, 0.3f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            ammoFill = UIFactory.Bar(barRt, UISkin.Sun, new Color(0.25f, 0.15f, 0.07f));
+            reloadText = UIFactory.Text(ammoPlate, L.T("reloading"), 30, TextAnchor.MiddleCenter, UISkin.Sky, 3f);
+            reloadText.rectTransform.offsetMin = new Vector2(0f, 14f);
+            reloadText.enabled = false;
+
+            reloadHint = UIFactory.At(root, "ReloadHint", new Vector2(1f, 0f), new Vector2(-40f, 362f), new Vector2(300f, 40f));
+            UIFactory.Text(reloadHint, L.T("pressR"), 26, TextAnchor.MiddleRight, UISkin.Red, 3f);
+            reloadHint.gameObject.SetActive(false);
+        }
+
+        void UpdateAmmo(float dt)
+        {
+            int ammo = weapons.CurrentAmmo, max = weapons.CurrentMagazine;
+            if (ammo != shownAmmo)
+            {
+                if (ammo < shownAmmo) ammoPunch = 1f;
+                shownAmmo = ammo;
+                ammoText.text = ammo.ToString();
+                ammoMaxText.text = "/ " + max;
+            }
+            bool reloading = weapons.IsReloading;
+            bool low = ammo <= Mathf.Max(1, max / 4);
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 10f);
+
+            ammoText.enabled = !reloading || weapons.Current.shellByShell;
+            ammoMaxText.enabled = ammoText.enabled;
+            reloadText.enabled = reloading && !weapons.Current.shellByShell;
+            ammoText.color = ammo == 0 ? UISkin.Red : low ? Color.Lerp(Color.white, UISkin.Red, pulse) : Color.white;
+            ammoFill.fillAmount = reloading ? weapons.ReloadProgress : ammo / (float)max;
+            ammoFill.color = reloading ? UISkin.Sky : low ? UISkin.Red : UISkin.Sun;
+
+            ammoPunch = Mathf.MoveTowards(ammoPunch, 0f, dt * 6f);
+            ammoText.transform.localScale = Vector3.one * (1f + ammoPunch * 0.15f);
+            ammoPlate.localRotation = Quaternion.Euler(0f, 0f, reloading ? Mathf.Sin(Time.unscaledTime * 18f) * 2f : 0f);
+
+            reloadHint.gameObject.SetActive(low && !reloading);
+            if (reloadHint.gameObject.activeSelf) reloadHint.localScale = Vector3.one * (1f + pulse * 0.08f);
         }
 
         void BuildCrosshair(Transform root)

@@ -26,6 +26,14 @@ namespace MutantPlants
         public SoundFX.Sfx sound = SoundFX.Sfx.Rifle;
         public Color tracerColor = new Color(1f, 0.9f, 0.5f);
 
+        [Header("Ammo")]
+        public int magazineSize = 30;
+        [Tooltip("Seconds for a full reload (magazine/pump/drum weapons).")]
+        public float reloadTime = 1.8f;
+        [Tooltip("Load one round at a time (shotgun); can be interrupted by firing.")]
+        public bool shellByShell;
+        public float shellLoadTime = 0.45f;
+
         [Header("Projectile weapons (leave empty for hitscan)")]
         public SeedGrenade projectile;
         public float projectileSpeed = 24f;
