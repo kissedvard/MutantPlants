@@ -14,7 +14,8 @@ WASD move · Mouse aim · Left click shoot · 1-4 / wheel switch weapon · Shift
 |---|---|---|
 | Movement | Acceleration, sprint FOV, head bob, landing dip, footsteps | `Player/PlayerController.cs`, `Player/CameraFX.cs` |
 | Weapons | Farm Rifle, Shotgun, Weed Sprayer, Seed Launcher (explosive); sway, recoil, muzzle flash + light, impacts | `Weapons/` |
-| Enemies | Carrot (fast), Tomato (bruiser), Chili Spitter (ranged), Pumpkin (tank), **Pumpkin King boss** (ground slam, summons minions) | `Enemies/EnemyPlant.cs`, `EnemyProjectile.cs` |
+| Enemies | Carrot (fast), Eggplant (bruiser), Pickle Spitter (ranged), Pumpkin (tank), **Pumpkin King boss** (ground slam, summons minions) | `Enemies/EnemyPlant.cs`, `EnemyProjectile.cs` |
+| Enemy models & animation | Cartoon models built from code (smooth lathe meshes, big eyes, outlines) and a shared Animator Controller with Idle / Walk / Attack / Hit / Die clips; eyes blink | `Editor/EnemyModelFactory.cs`, `Assets/Animations/` |
 | Waves | Escalating waves, breaks, boss every 5th wave, health scaling | `Enemies/EnemySpawner.cs` |
 | Scoring | Combo multiplier (up to x5), score popups, win at 2500 points | `Core/GameManager.cs` |
 | Saving | Settings, top-5 leaderboard, checkpoint (enter the barn) | `Core/GameSettings.cs`, `Core/SaveSystem.cs` |
