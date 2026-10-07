@@ -18,7 +18,7 @@ namespace MutantPlants.EditorTools
     /// Re-running it overwrites the generated assets, so once you start hand-editing the
     /// scenes/prefabs, change this generator instead or stop using it.
     /// </summary>
-    public static class MutantPlantsBuilder
+    public static partial class MutantPlantsBuilder
     {
         const string MatDir = "Assets/Materials";
         const string TexDir = "Assets/Textures";
@@ -396,7 +396,7 @@ namespace MutantPlants.EditorTools
             Lit("PowerBlue", new Color(0.15f, 0.4f, 1f), 0.5f, 0f, new Color(0.1f, 0.35f, 1f) * 2.5f);
             Lit("Sprayer", new Color(0.2f, 0.55f, 0.85f), 0.65f);
             Lit("SeedGlow", new Color(0.45f, 0.3f, 0.1f), 0.4f, 0f, new Color(0.5f, 1f, 0.1f) * 2f);
-            Lit("SpitGlow", new Color(1f, 0.4f, 0.05f), 0.6f, 0f, new Color(1f, 0.3f, 0f) * 4f);
+            Lit("SpitGlow", new Color(0.55f, 1f, 0.15f), 0.6f, 0f, new Color(0.4f, 1f, 0.05f) * 3f);
 
             var grass = Lit("GrassBlades", new Color(0.45f, 0.68f, 0.25f), 0.1f);
             grass.SetFloat("_Cull", 0f);
@@ -670,39 +670,6 @@ namespace MutantPlants.EditorTools
             foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = layer;
         }
 
-        static void Face(Transform body, float y, float z, float spacing, float size, bool teeth = true, float mouthWidth = 0.3f, float angry = 22f)
-        {
-            for (int s = -1; s <= 1; s += 2)
-            {
-                Prim(PrimitiveType.Sphere, "Eye", body, new Vector3(s * spacing, y, z), Vector3.one * size, "EyeWhite", false);
-                Prim(PrimitiveType.Sphere, "Pupil", body, new Vector3(s * spacing * 0.9f, y - size * 0.05f, z + size * 0.4f), Vector3.one * size * 0.5f, "Black", false);
-                Prim(PrimitiveType.Cube, "Brow", body, new Vector3(s * spacing, y + size * 0.62f, z + size * 0.25f),
-                    new Vector3(size * 1.3f, size * 0.24f, size * 0.22f), "Black", false, new Vector3(0f, 0f, s * angry));
-            }
-            float my = y - size * 1.5f;
-            Prim(PrimitiveType.Cube, "Mouth", body, new Vector3(0f, my, z - size * 0.1f), new Vector3(mouthWidth, size * 0.55f, size * 0.4f), "Black", false);
-            if (!teeth) return;
-            for (int i = 0; i < 4; i++)
-            {
-                float x = Mathf.Lerp(-mouthWidth * 0.38f, mouthWidth * 0.38f, i / 3f);
-                Prim(PrimitiveType.Cube, "Tooth", body, new Vector3(x, my + size * 0.15f, z + size * 0.12f),
-                    new Vector3(mouthWidth * 0.14f, size * 0.22f, size * 0.12f), "Teeth", false, new Vector3(0f, 0f, 45f));
-            }
-        }
-
-        static Transform[] Legs(Transform body, float hipY, float spread, float length, float thickness, string mat)
-        {
-            var legs = new Transform[2];
-            for (int s = -1, i = 0; s <= 1; s += 2, i++)
-            {
-                var hip = Empty(s < 0 ? "LegL" : "LegR", body, new Vector3(s * spread, hipY, 0f)).transform;
-                Prim(PrimitiveType.Capsule, "Leg", hip, new Vector3(0f, -length / 2f, 0f), new Vector3(thickness, length / 2f, thickness), mat, false);
-                Prim(PrimitiveType.Sphere, "Foot", hip, new Vector3(0f, -length, thickness * 0.4f), new Vector3(thickness * 1.5f, thickness * 0.8f, thickness * 2.2f), mat, false);
-                legs[i] = hip;
-            }
-            return legs;
-        }
-
         static void Leaves(Transform parent, Vector3 pos, int count, float length, float tilt, string mat = "Leaf")
         {
             for (int i = 0; i < count; i++)
@@ -722,13 +689,13 @@ namespace MutantPlants.EditorTools
 
             var spit = new GameObject("Projectile_Spit");
             Prim(PrimitiveType.Sphere, "Glob", spit.transform, Vector3.zero, new Vector3(0.35f, 0.35f, 0.5f), "SpitGlow", false, shadows: false);
-            AddTrail(spit, new Color(2f, 0.6f, 0.05f), 0.3f, 0.25f);
+            AddTrail(spit, new Color(0.8f, 2f, 0.2f), 0.3f, 0.25f);
             var light = Empty("Light", spit.transform, Vector3.zero).AddComponent<Light>();
             light.type = LightType.Point;
-            light.color = new Color(1f, 0.45f, 0.1f);
+            light.color = new Color(0.5f, 1f, 0.2f);
             light.range = 3f;
             light.intensity = 2f;
-            spit.AddComponent<EnemyProjectile>();
+            spit.AddComponent<EnemyProjectile>().splashColor = new Color(0.55f, 0.9f, 0.15f);
             SetLayerRecursive(spit, IgnoreRaycastLayer);
             set.spit = PrefabUtility.SaveAsPrefabAsset(spit, $"{PrefabDir}/Projectile_Spit.prefab").GetComponent<EnemyProjectile>();
             Object.DestroyImmediate(spit);
@@ -755,146 +722,6 @@ namespace MutantPlants.EditorTools
                 new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
             trail.colorGradient = g;
             trail.shadowCastingMode = ShadowCastingMode.Off;
-        }
-
-        // ------------------------------------------------------------------ Enemy prefabs
-
-        struct EnemySet { public EnemyPlant carrot, tomato, chili, pumpkin, king; }
-
-        static EnemySet CreateEnemyPrefabs(EnemyProjectile spit)
-        {
-            var set = new EnemySet();
-
-            // Carrot: fast, fragile.
-            set.carrot = MakeEnemy("Enemy_Carrot", "e_carrot", 0.4f, 1.8f, new Color(1f, 0.5f, 0.1f), body =>
-            {
-                Prim(PrimitiveType.Capsule, "Body", body, new Vector3(0f, 1.05f, 0f), new Vector3(0.6f, 0.6f, 0.6f), "Carrot", false);
-                Prim(PrimitiveType.Capsule, "Tip", body, new Vector3(0f, 0.55f, 0f), new Vector3(0.38f, 0.32f, 0.38f), "Carrot", false);
-                Leaves(body, new Vector3(0f, 1.6f, 0f), 5, 0.75f, 22f);
-                Face(body, 1.2f, 0.27f, 0.13f, 0.15f, true, 0.22f);
-                for (int s = -1; s <= 1; s += 2)
-                    Prim(PrimitiveType.Capsule, "Arm", body, new Vector3(s * 0.33f, 0.95f, 0.05f), new Vector3(0.07f, 0.22f, 0.07f), "Carrot", false, new Vector3(0f, 0f, s * 50f));
-                return Legs(body, 0.45f, 0.13f, 0.45f, 0.11f, "Carrot");
-            }, e => { e.maxHealth = 30f; e.moveSpeed = 5.6f; e.attackDamage = 7f; e.attackCooldown = 0.8f; e.scoreValue = 10; e.attackRange = 1.6f; });
-
-            // Tomato: medium bruiser.
-            set.tomato = MakeEnemy("Enemy_Tomato", "e_tomato", 0.55f, 1.4f, new Color(0.9f, 0.1f, 0.05f), body =>
-            {
-                Prim(PrimitiveType.Sphere, "Body", body, new Vector3(0f, 0.85f, 0f), new Vector3(1.2f, 1.05f, 1.2f), "Tomato", false);
-                Prim(PrimitiveType.Cylinder, "Stem", body, new Vector3(0f, 1.45f, 0f), new Vector3(0.08f, 0.12f, 0.08f), "Leaf", false);
-                Leaves(body, new Vector3(0f, 1.36f, 0f), 6, 0.5f, 80f);
-                Face(body, 1.05f, 0.52f, 0.2f, 0.2f, true, 0.42f, 28f);
-                return Legs(body, 0.35f, 0.25f, 0.38f, 0.13f, "Leaf");
-            }, e => { e.maxHealth = 70f; e.moveSpeed = 3.8f; e.attackDamage = 12f; e.scoreValue = 20; e.attackRange = 1.9f; });
-
-            // Chili spitter: ranged.
-            set.chili = MakeEnemy("Enemy_Chili", "e_chili", 0.4f, 1.9f, new Color(1f, 0.25f, 0.05f), body =>
-            {
-                Prim(PrimitiveType.Capsule, "Body", body, new Vector3(0f, 1.1f, 0f), new Vector3(0.5f, 0.55f, 0.5f), "Chili", false);
-                Prim(PrimitiveType.Capsule, "Tail", body, new Vector3(0.12f, 0.55f, -0.05f), new Vector3(0.32f, 0.3f, 0.32f), "Chili", false, new Vector3(0f, 0f, 25f));
-                Prim(PrimitiveType.Cylinder, "Cap", body, new Vector3(0f, 1.62f, 0f), new Vector3(0.38f, 0.06f, 0.38f), "Leaf", false);
-                Prim(PrimitiveType.Cylinder, "Stalk", body, new Vector3(0.05f, 1.8f, 0f), new Vector3(0.07f, 0.16f, 0.07f), "Leaf", false, new Vector3(0f, 0f, -20f));
-                Face(body, 1.3f, 0.23f, 0.11f, 0.14f, false, 0.12f, 30f);
-                Prim(PrimitiveType.Cylinder, "Snout", body, new Vector3(0f, 1.07f, 0.3f), new Vector3(0.14f, 0.08f, 0.14f), "Black", false, new Vector3(90f, 0f, 0f));
-                return Legs(body, 0.4f, 0.12f, 0.42f, 0.1f, "Leaf");
-            }, e =>
-            {
-                e.behaviour = EnemyPlant.Behaviour.Ranged; e.maxHealth = 45f; e.moveSpeed = 3.4f; e.attackDamage = 10f;
-                e.attackCooldown = 2.3f; e.scoreValue = 25; e.preferredRange = 13f; e.projectile = spit; e.projectileSpeed = 17f;
-                e.mouth = e.body.Find("Snout");
-            });
-
-            // Pumpkin: slow tank.
-            set.pumpkin = MakeEnemy("Enemy_Pumpkin", "e_pumpkin", 0.95f, 1.6f, new Color(1f, 0.55f, 0.08f), body =>
-            {
-                Pumpkin(body, 1f);
-                return Legs(body, 0.35f, 0.45f, 0.35f, 0.2f, "Leaf");
-            }, e => { e.maxHealth = 220f; e.moveSpeed = 2.3f; e.attackDamage = 22f; e.attackCooldown = 1.4f; e.scoreValue = 50; e.attackRange = 2.6f; e.wobbleAmount = 0.04f; e.knockbackScale = 0.3f; });
-
-            // Pumpkin King: the boss.
-            set.king = MakeEnemy("Boss_PumpkinKing", "e_king", 1.6f, 4f, new Color(1f, 0.5f, 0.05f), body =>
-            {
-                Pumpkin(body, 2.3f);
-                var crown = Empty("Crown", body, new Vector3(0f, 3.95f, 0f)).transform;
-                Prim(PrimitiveType.Cylinder, "Band", crown, Vector3.zero, new Vector3(1.4f, 0.22f, 1.4f), "Gold", false);
-                for (int i = 0; i < 6; i++)
-                {
-                    var spike = Empty("SpikePivot", crown, Vector3.zero, new Vector3(0f, i * 60f, 0f)).transform;
-                    Prim(PrimitiveType.Cube, "Spike", spike, new Vector3(0f, 0.38f, 0.62f), new Vector3(0.22f, 0.5f, 0.06f), "Gold", false, new Vector3(-8f, 0f, 45f));
-                    Prim(PrimitiveType.Sphere, "Gem", spike, new Vector3(0f, 0.08f, 0.7f), Vector3.one * 0.14f, "HealthRed", false);
-                }
-                for (int s = -1; s <= 1; s += 2)
-                {
-                    var arm = Empty("Vine", body, new Vector3(s * 2.1f, 1.8f, 0f), new Vector3(0f, 0f, s * -30f)).transform;
-                    Prim(PrimitiveType.Capsule, "Arm", arm, new Vector3(s * 0.6f, -0.3f, 0f), new Vector3(0.28f, 0.8f, 0.28f), "Leaf", false, new Vector3(0f, 0f, s * 60f));
-                    Leaves(arm, new Vector3(s * 1.2f, -0.7f, 0f), 4, 0.8f, 60f);
-                }
-                return Legs(body, 0.7f, 1f, 0.7f, 0.42f, "Leaf");
-            }, e =>
-            {
-                e.behaviour = EnemyPlant.Behaviour.Boss; e.maxHealth = 1600f; e.moveSpeed = 2.6f; e.attackDamage = 30f;
-                e.scoreValue = 300; e.attackRange = 3.5f; e.slamRange = 6.5f; e.slamCooldown = 4f; e.wobbleAmount = 0.03f;
-                e.knockbackScale = 0.05f; e.riseDuration = 2f;
-            });
-            set.king.minionPrefab = set.carrot;
-            EditorUtility.SetDirty(set.king);
-            PrefabUtility.SavePrefabAsset(set.king.gameObject);
-
-            return set;
-        }
-
-        static void Pumpkin(Transform body, float s)
-        {
-            Prim(PrimitiveType.Sphere, "Body", body, new Vector3(0f, 0.95f * s, 0f), new Vector3(2f, 1.45f, 2f) * s, "Pumpkin", false);
-            for (int i = 0; i < 4; i++)
-                Prim(PrimitiveType.Sphere, "Rib", body, new Vector3(0f, 0.95f * s, 0f), new Vector3(0.95f, 1.5f, 2.05f) * s, "Pumpkin", false, new Vector3(0f, i * 45f, 0f));
-            Prim(PrimitiveType.Cylinder, "Stem", body, new Vector3(0f, 1.75f * s, 0f), new Vector3(0.18f, 0.22f, 0.18f) * s, "DarkWood", false, new Vector3(10f, 0f, 8f));
-            for (int side = -1; side <= 1; side += 2)
-                Prim(PrimitiveType.Cube, "Eye", body, new Vector3(side * 0.38f * s, 1.2f * s, 0.93f * s), new Vector3(0.32f, 0.24f, 0.12f) * s, "Glow", false,
-                    new Vector3(0f, 0f, side * -28f), false);
-            Prim(PrimitiveType.Cube, "Nose", body, new Vector3(0f, 0.98f * s, 0.98f * s), new Vector3(0.14f, 0.14f, 0.1f) * s, "Glow", false, new Vector3(0f, 0f, 45f), false);
-            Prim(PrimitiveType.Cube, "Mouth", body, new Vector3(0f, 0.7f * s, 0.95f * s), new Vector3(0.95f, 0.2f, 0.12f) * s, "Glow", false, shadows: false);
-            for (int i = 0; i < 3; i++)
-                Prim(PrimitiveType.Cube, "Tooth", body, new Vector3((i - 1) * 0.28f * s, 0.78f * s, 0.99f * s), new Vector3(0.1f, 0.1f, 0.08f) * s, "Pumpkin", false, new Vector3(0f, 0f, 45f));
-            var light = Empty("FaceLight", body, new Vector3(0f, 1f * s, 1.3f * s)).AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = new Color(1f, 0.6f, 0.15f);
-            light.range = 3f * s;
-            light.intensity = 1.5f;
-            light.shadows = LightShadows.None;
-        }
-
-        static EnemyPlant MakeEnemy(string name, string nameKey, float radius, float height, Color splat, System.Func<Transform, Transform[]> build, System.Action<EnemyPlant> stats)
-        {
-            var root = new GameObject(name);
-            var body = Empty("Body", root.transform, Vector3.zero).transform;
-            var legs = build(body);
-
-            var col = root.AddComponent<CapsuleCollider>();
-            col.radius = radius;
-            col.height = Mathf.Max(height, radius * 2f);
-            col.center = new Vector3(0f, col.height / 2f, 0f);
-
-            var agent = root.AddComponent<NavMeshAgent>();
-            agent.radius = Mathf.Min(radius, 0.9f);
-            agent.height = height;
-            agent.acceleration = 24f;
-            agent.angularSpeed = 360f;
-            agent.autoBraking = false;
-            agent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
-
-            var enemy = root.AddComponent<EnemyPlant>();
-            enemy.body = body;
-            enemy.legs = legs;
-            enemy.splatColor = splat;
-            enemy.nameKey = nameKey;
-            stats(enemy);
-
-            foreach (var r in root.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = ShadowCastingMode.On;
-            SetLayerRecursive(root, EnemyLayer);
-            var prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{PrefabDir}/{name}.prefab").GetComponent<EnemyPlant>();
-            Object.DestroyImmediate(root);
-            return prefab;
         }
 
         // ------------------------------------------------------------------ Pickup prefabs
@@ -1509,8 +1336,8 @@ namespace MutantPlants.EditorTools
             waves.enemies = new[]
             {
                 new EnemySpawner.Entry { prefab = enemies.carrot, weight = 5f, fromWave = 1 },
-                new EnemySpawner.Entry { prefab = enemies.tomato, weight = 3f, fromWave = 2 },
-                new EnemySpawner.Entry { prefab = enemies.chili, weight = 2f, fromWave = 3 },
+                new EnemySpawner.Entry { prefab = enemies.eggplant, weight = 3f, fromWave = 2 },
+                new EnemySpawner.Entry { prefab = enemies.pickle, weight = 2f, fromWave = 3 },
                 new EnemySpawner.Entry { prefab = enemies.pumpkin, weight = 1.2f, fromWave = 4 },
             };
             waves.bossPrefab = enemies.king;
@@ -1570,8 +1397,8 @@ namespace MutantPlants.EditorTools
             var poses = new (string prefab, Vector3 pos)[]
             {
                 ("Boss_PumpkinKing", new Vector3(0f, 0f, -1f)), ("Enemy_Carrot", new Vector3(-4f, 0f, -2f)),
-                ("Enemy_Carrot", new Vector3(4.5f, 0f, -1f)), ("Enemy_Tomato", new Vector3(2f, 0f, -6f)),
-                ("Enemy_Tomato", new Vector3(-2.5f, 0f, -6.5f)), ("Enemy_Chili", new Vector3(6f, 0f, -4f)),
+                ("Enemy_Carrot", new Vector3(4.5f, 0f, -1f)), ("Enemy_Eggplant", new Vector3(2f, 0f, -6f)),
+                ("Enemy_Eggplant", new Vector3(-2.5f, 0f, -6.5f)), ("Enemy_Pickle", new Vector3(6f, 0f, -4f)),
                 ("Enemy_Pumpkin", new Vector3(-6.5f, 0f, -4.5f)),
             };
             var decor = new GameObject("MenuMutants").transform;
@@ -1582,7 +1409,6 @@ namespace MutantPlants.EditorTools
                 go.name = prefabName;
                 Object.DestroyImmediate(go.GetComponent<EnemyPlant>());
                 Object.DestroyImmediate(go.GetComponent<NavMeshAgent>());
-                go.transform.Find("Body").gameObject.AddComponent<IdleWobble>();
             }
 
             new GameObject("MainMenu").AddComponent<MainMenuUI>();

@@ -64,8 +64,8 @@ namespace MutantPlants
 
             // Enemies / kill feed
             ["e_carrot"] = ("Carrot", "Répa"),
-            ["e_tomato"] = ("Tomato", "Paradicsom"),
-            ["e_chili"] = ("Chili Spitter", "Köpködő chili"),
+            ["e_eggplant"] = ("Eggplant", "Padlizsán"),
+            ["e_pickle"] = ("Pickle Spitter", "Köpködő uborka"),
             ["e_pumpkin"] = ("Pumpkin", "Tök"),
             ["e_king"] = ("PUMPKIN KING", "TÖKKIRÁLY"),
             ["kill"] = ("{0} splatted", "{0} szétloccsantva"),
