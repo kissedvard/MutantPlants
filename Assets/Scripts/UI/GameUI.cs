@@ -26,7 +26,7 @@ namespace MutantPlants
         RectTransform sunIcon, comboRoot, bannerRt, messageRt, hintBubble, bossBar;
         GameObject hitMarker;
         RectTransform[] crossBars;
-        Slot[] slots;
+        InventoryBar inventory;
         Button loadCheckpointButton;
         KillPopups killPopups;
         EnemyPlant boss;
@@ -35,14 +35,8 @@ namespace MutantPlants
         bool bannerShake;
         int shownCombo = 1;
 
-        class Slot { public RectTransform rt; public Image card, glow, icon; public Text name, number; public Vector2 home; }
         class DamageIndicator { public Image image; public Vector3 source; public float time; }
         readonly List<DamageIndicator> indicators = new List<DamageIndicator>();
-
-        static readonly Color[] WeaponColors =
-        {
-            new Color(0.88f, 0.25f, 0.15f), new Color(0.45f, 0.45f, 0.5f), new Color(0.3f, 0.6f, 0.95f), new Color(0.36f, 0.72f, 0.2f),
-        };
 
         static Vector2 Center => new Vector2(0.5f, 0.5f);
 
@@ -148,7 +142,7 @@ namespace MutantPlants
             buffText.text = buffs;
 
             UpdateCombo(dt);
-            UpdateSlots(dt);
+            inventory.Update(dt);
 
             // Waves
             if (waves != null)
@@ -185,21 +179,6 @@ namespace MutantPlants
             comboRoot.localScale = Vector3.one * (1f + comboPunch * comboPunch * 0.6f);
             comboRoot.GetChild(0).localRotation = Quaternion.Euler(0f, 0f, Time.unscaledTime * 40f);
             comboFill.fillAmount = game.ComboTimeLeft / game.comboWindow;
-        }
-
-        void UpdateSlots(float dt)
-        {
-            for (int i = 0; i < slots.Length; i++)
-            {
-                var s = slots[i];
-                bool selected = i == weapons.CurrentIndex;
-                var target = s.home + (selected ? new Vector2(0f, 22f) : Vector2.zero);
-                s.rt.anchoredPosition = Vector2.Lerp(s.rt.anchoredPosition, target, dt * 14f);
-                float sc = Mathf.Lerp(s.rt.localScale.x, selected ? 1.08f : 1f, dt * 14f);
-                s.rt.localScale = new Vector3(sc, sc, 1f);
-                s.glow.enabled = selected;
-                if (selected) s.glow.color = new Color(1f, 0.9f, 0.3f, 0.65f + Mathf.Sin(Time.unscaledTime * 6f) * 0.25f);
-            }
         }
 
         public void ShowMessage(string message, Color? color = null)
@@ -303,30 +282,10 @@ namespace MutantPlants
             healthText = UIFactory.Text(hpTextRt, "100", 28, TextAnchor.MiddleCenter, Color.white, 2.5f);
             heart = UIFactory.Icon(root, "Heart", UISkin.Heart, UISkin.Red, Vector2.zero, new Vector2(30f, 26f), 100f);
 
-            // --- Seed-packet weapon slots (bottom right) ---
-            int count = weapons.weapons.Length;
-            const float cardW = 128f, cardH = 160f, gapW = 14f;
-            var inv = UIFactory.At(root, "Inventory", new Vector2(1f, 0f), new Vector2(-34f, 26f), new Vector2(count * (cardW + gapW), cardH));
-            slots = new Slot[count];
-            for (int i = 0; i < count; i++)
-            {
-                var home = new Vector2(i * (cardW + gapW) + cardW / 2f, cardH / 2f);
-                var rt = UIFactory.Rect(inv, "Slot" + (i + 1), Vector2.zero, Vector2.zero, Center, home, new Vector2(cardW, cardH));
-                var glowRt = UIFactory.Rect(rt, "Glow", Vector2.zero, Vector2.one, Center, Vector2.zero, new Vector2(22f, 22f));
-                var glow = UIFactory.Sliced(glowRt, UISkin.Rounded, UISkin.Sun, 1f);
-                var cardImg = UIFactory.Sliced(UIFactory.Stretch(rt, "Card"), UISkin.Card, Color.white, 1.2f);
-                var icon = UIFactory.Icon(rt, "Icon", UISkin.WeaponIcon(i), WeaponColors[i % WeaponColors.Length], Center, new Vector2(0f, 2f), 104f);
-                var numRt = UIFactory.At(rt, "Key", new Vector2(0f, 1f), new Vector2(-12f, 12f), new Vector2(46f, 46f));
-                UIFactory.Image(numRt, UISkin.Sun).sprite = UISkin.Circle;
-                var number = UIFactory.Text(numRt, (i + 1).ToString(), 26, TextAnchor.MiddleCenter, UISkin.Outline, 0f);
-                var nameRt = UIFactory.Rect(rt, "Name", new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 10f), new Vector2(-14f, 40f));
-                var name = UIFactory.Text(nameRt, "", 17, TextAnchor.MiddleCenter, UISkin.Outline, 0f);
-                name.horizontalOverflow = HorizontalWrapMode.Wrap;
-                name.lineSpacing = 0.85f;
-                slots[i] = new Slot { rt = rt, card = cardImg, glow = glow, icon = icon, name = name, number = number, home = home };
-            }
+            // --- Weapon tray (bottom right) ---
+            inventory = new InventoryBar(root, weapons, this);
 
-            var buffRt = UIFactory.At(root, "Buffs", new Vector2(1f, 0f), new Vector2(-40f, 220f), new Vector2(560f, 80f));
+            var buffRt = UIFactory.At(root, "Buffs", new Vector2(1f, 0f), new Vector2(-40f, 270f), new Vector2(560f, 80f));
             buffText = UIFactory.Text(buffRt, "", 28, TextAnchor.LowerRight, UISkin.Sun, 3f);
 
             // --- Damage direction indicators ---
@@ -422,15 +381,7 @@ namespace MutantPlants
 
         void RefreshInventory()
         {
-            if (slots == null) return;
-            for (int i = 0; i < slots.Length; i++)
-            {
-                bool unlocked = weapons.IsUnlocked(i);
-                var s = slots[i];
-                s.card.color = unlocked ? Color.white : new Color(0.55f, 0.55f, 0.55f);
-                s.icon.color = unlocked ? WeaponColors[i % WeaponColors.Length] : new Color(0.3f, 0.3f, 0.3f, 0.6f);
-                s.name.text = unlocked ? weapons.weapons[i].DisplayName : L.T("locked");
-            }
+            if (inventory != null) inventory.Refresh();
         }
 
         // ---------- Menus ----------

@@ -1197,6 +1197,7 @@ namespace MutantPlants.EditorTools
             var health = player.AddComponent<PlayerHealth>();
 
             CreateWeaponMaterials();
+            viewCamera = camGo.transform;
             var holder = Empty("WeaponHolder", camGo.transform, Vector3.zero).transform;
             holder.localScale = Vector3.one * 0.6f;
             var muzzleLight = Empty("MuzzleLight", camGo.transform, new Vector3(0.2f, -0.1f, 0.8f)).AddComponent<Light>();

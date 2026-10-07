@@ -72,6 +72,12 @@ namespace MutantPlants
             ["bossKilled"] = ("BOSS DEFEATED!", "FŐELLENSÉG LEGYŐZVE!"),
             ["hugeWave"] = ("A huge wave of mutants is approaching!", "Hatalmas mutáns hullám közeleg!"),
 
+            // Weapon fire-mode tags
+            ["tagAuto"] = ("AUTO", "AUTO"),
+            ["tagSemi"] = ("SEMI", "FÉLAUTO"),
+            ["tagSpread"] = ("SPREAD", "SZÓRÁS"),
+            ["tagBoom"] = ("BOOM", "BUMM"),
+
             // Weapons
             ["w_rifle"] = ("Auto Rifle", "Gépkarabély"),
             ["w_shotgun"] = ("Shotgun", "Sörétes"),
