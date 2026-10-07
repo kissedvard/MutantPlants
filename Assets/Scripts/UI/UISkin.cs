@@ -76,6 +76,83 @@ namespace MutantPlants
             return s;
         }
 
+        // ---------- High-resolution inventory art ----------
+
+        /// <summary>Large seed-packet card: scalloped green header, paper body, beige label strip. 9-sliced.</summary>
+        public static Sprite SeedCard => Get("seedCardHQ", () => SeedCardHQ(240, 320));
+        /// <summary>Soft golden glow halo (9-sliced), for the selected card.</summary>
+        public static Sprite GlowHalo => Get("glow", () => Halo(160, 34, 40));
+        public static Sprite Padlock => Get("padlock", () => Shape(128, 6, PadlockField, 1.05f));
+        public static Sprite Plank => Get("plank", () => RoundedBox(192, 64, 18, 6, false, WoodPixel));
+        public static Sprite WoodTray => Get("woodTray", () => RoundedBox(256, 256, 54, 10, false, WoodPixel, nails: true));
+
+        static Sprite SeedCardHQ(int w, int h)
+        {
+            int header = 76, label = 58;
+            var sprite = RoundedBox(w, h, 30, 8, false, (x, y) =>
+            {
+                float wave = Mathf.Sin(x / (float)w * Mathf.PI * 2f * 5f) * 5f;
+                float headerEdge = h - header + wave;
+                float edgeDist = Mathf.Min(Mathf.Min(x, w - x), Mathf.Min(y, h - y)) / 40f;
+                float vignette = Mathf.Lerp(0.86f, 1f, Mathf.Clamp01(edgeDist));
+                if (y > headerEdge)
+                {
+                    float k = (y - headerEdge) / (h - headerEdge);
+                    var c = Color.Lerp(GrassDark, Grass * 1.08f, k);
+                    if (y > h - 34 && y < h - 22) c = Color.Lerp(c, Color.white, 0.25f); // glossy stripe
+                    c *= vignette;
+                    c.a = 1f;
+                    return c;
+                }
+                if (y > headerEdge - 4f) return Outline;
+                Color result;
+                if (y < label)
+                {
+                    if (y > label - 3) return Outline;
+                    result = Color.Lerp(new Color(0.8f, 0.66f, 0.42f), new Color(0.9f, 0.77f, 0.52f), y / (float)label);
+                }
+                else
+                {
+                    float paper = Mathf.PerlinNoise(x * 0.09f, y * 0.09f) * 0.05f + Mathf.PerlinNoise(x * 0.5f, y * 0.5f) * 0.03f;
+                    result = Color.Lerp(new Color(0.97f, 0.9f, 0.7f), Cream, (y - label) / (float)(h - header - label));
+                    result = new Color(result.r - paper, result.g - paper, result.b - paper);
+                }
+                result *= vignette;
+                result.a = 1f;
+                return result;
+            });
+            return Sprite.Create(sprite.texture, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect,
+                new Vector4(38, label + 8, 38, header + 10));
+        }
+
+        static Sprite Halo(int size, int radius, int falloff)
+        {
+            var tex = NewTex(size, size);
+            var px = new Color[size * size];
+            var half = new Vector2(size / 2f - falloff, size / 2f - falloff);
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    var p = new Vector2(x + 0.5f - size / 2f, y + 0.5f - size / 2f);
+                    float d = SdRoundBox(p, half, radius);
+                    float a = d <= 0f ? 1f : Mathf.Exp(-d / (falloff * 0.35f));
+                    px[y * size + x] = new Color(1f, 1f, 1f, a);
+                }
+            int b = radius + falloff;
+            return Finish(tex, px, new Vector4(b, b, b, b));
+        }
+
+        static float PadlockField(float x, float y)
+        {
+            var p = new Vector2(x, y);
+            float body = Box(p, 0f, -0.28f, 0.58f, 0.42f, 0f, 0.14f);
+            float ring = Mathf.Max(Mathf.Abs((p - new Vector2(0f, 0.18f)).magnitude - 0.36f) - 0.1f, 0.18f - p.y);
+            float legs = Mathf.Min(Box(p, -0.36f, 0.12f, 0.1f, 0.1f), Box(p, 0.36f, 0.12f, 0.1f, 0.1f));
+            float shape = Mathf.Min(body, Mathf.Min(ring, legs));
+            float keyhole = Mathf.Min(Disc(p, 0f, -0.22f, 0.1f), Box(p, 0f, -0.38f, 0.04f, 0.12f));
+            return Mathf.Max(shape, -keyhole);
+        }
+
         /// <summary>Cartoon silhouette for a weapon slot (0 rifle, 1 shotgun, 2 sprayer, 3 launcher).</summary>
         public static Sprite WeaponIcon(int index) => Get("weapon" + index, () => Shape(128, 6, (x, y) => WeaponField(index, new Vector2(x, y)), 1.05f));
 
